@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+
+if ! command -v mediainfo &> /dev/null
+then
+    echo "mediainfo could not be found"
+    exit
+fi
+
+output_directory="./"
+verbose=0
+recursive=0
+
+usage() {
+  echo "Usage: mbr [-v|--verbose] [-r|--recursive] [-o|--output] [-h|--help]"
+  exit 0
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -v|--verbose)
+      verbose=1
+      shift
+      ;;
+    -r|--recursive)
+      recursive=1
+      shift
+      ;;
+    -o|--output)
+      if [[ -n $2 && $2 != -* ]]; then
+        output_directory=$2
+        shift 2
+      else
+        shift
+      fi
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      echo "Error: Invalid option: $1"
+      usage
+      ;;
+  esac
+done
+
+parse_filename() {
+    TMP=$1
+    TMP=${TMP//å/a}
+    TMP=${TMP//ä/a}
+    TMP=${TMP//ö/o}
+    TMP=${TMP//Å/A}
+    TMP=${TMP//Ä/A}
+    TMP=${TMP//Ö/O}
+    TMP=$(sed 's/[^[:alnum:]() _. -]//g' <<< "$TMP" | sed 's/\( \)*/\1/g' | awk '{$1=$1};1')
+    echo "$TMP"
+}
+
+if [ "$recursive" = 1 ]
+then
+    find . -type f \( -name "*.mp4" -o -name "*.m4v" \) -print0
+else
+    find . -maxdepth 1 -type f \( -name "*.mp4" -o -name "*.m4v" \) -print0
+fi | while IFS= read -r -d '' FILE; do
+    FILE_EXTENSION="${FILE##*.}"
+    DIRECTORY=""
+    FILENAME=""
+
+    GENERAL_MOVIE_NAME=$(mediainfo --Inform="General;%Movie%" "$FILE")
+    GENERAL_TVSHOW_NAME=$(mediainfo --Inform="General;%Collection%" "$FILE")
+
+    VIDEO_RESOLUTION_INFO=$(mediainfo --Inform="Video;%Width%,%Height%" "$FILE")
+    IFS=',' read -r width height <<< "$VIDEO_RESOLUTION_INFO"
+    VIDEO_RESOLUTION=""
+    if ((width >= 7680)); then
+        VIDEO_RESOLUTION="8K"
+    elif ((width >= 3840)); then
+        VIDEO_RESOLUTION="4K"
+    elif ((width >= 2560)); then
+        VIDEO_RESOLUTION="1440p"
+    elif ((width >= 1920)); then
+        VIDEO_RESOLUTION="1080p"
+    elif ((width >= 1280)); then
+        VIDEO_RESOLUTION="720p"
+    else
+        VIDEO_RESOLUTION="Unknown"
+    fi
+
+    if [ -n "$GENERAL_MOVIE_NAME" ]
+    then
+        GENERAL_RECORDED_YEAR=$(gdate -d "$(mediainfo --Inform="General;%Recorded_Date%" "$FILE" | awk '{print $(NF-1)}')" +"%Y")
+
+        if [ -n "$GENERAL_RECORDED_YEAR" ]
+        then
+            FILENAME=$(parse_filename "$GENERAL_MOVIE_NAME ($GENERAL_RECORDED_YEAR)")
+            DIRECTORY="$(realpath "$output_directory")/$FILENAME"
+            FILENAME=$(echo "$FILENAME ($VIDEO_RESOLUTION).$FILE_EXTENSION")
+        fi
+    elif [ -n "$GENERAL_TVSHOW_NAME" ]
+    then
+        GENERAL_SEASON_NUMBER=$(printf "%02d\n" "$(mediainfo --Inform="General;%Season%" "$FILE")")
+        GENERAL_EPISODE_NUMBER=$(printf "%02d\n" "$(mediainfo --Inform="General;%Track/Position%" "$FILE")")
+        GENERAL_EPISODE_NAME=$(mediainfo --Inform="General;%Track%" "$FILE")
+
+        if [ -n "$GENERAL_SEASON_NUMBER" ] && [ -n "$GENERAL_EPISODE_NUMBER" ] && [ -n "$GENERAL_EPISODE_NAME" ]
+        then
+            DIRECTORY="$(realpath "$output_directory")/$GENERAL_TVSHOW_NAME/Season $GENERAL_SEASON_NUMBER"
+            FILENAME=$(parse_filename "$GENERAL_TVSHOW_NAME - S$GENERAL_SEASON_NUMBER"E$GENERAL_EPISODE_NUMBER" - $GENERAL_EPISODE_NAME ($VIDEO_RESOLUTION).$FILE_EXTENSION")
+        fi
+    fi
+
+    if [ -n "$DIRECTORY" ] && [ -n "$FILENAME" ]
+    then
+        mkdir -p "$DIRECTORY" || {
+            echo "Failed to create directory: $DIRECTORY"
+            continue
+        }
+        FILEPATH="$DIRECTORY/$FILENAME"
+
+        if [ "$verbose" = 1 ]
+        then
+            echo "[MOVE] $FILE => $FILEPATH"
+        fi
+
+        if [ -e "$FILEPATH" ]
+        then
+            echo "File already exists: $FILEPATH"
+        else
+            mv "$FILE" "$FILEPATH" || echo "Failed to move file: $FILE"
+        fi
+    else
+        echo "Unable to parse file: $FILE"
+    fi
+done
+
+echo "Done."

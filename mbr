@@ -65,10 +65,10 @@ fi | while IFS= read -r -d '' FILE; do
     DIRECTORY=""
     FILENAME=""
 
-    GENERAL_MOVIE_NAME=$(mediainfo --Inform="General;%Movie%" "$FILE")
-    GENERAL_TVSHOW_NAME=$(mediainfo --Inform="General;%Collection%" "$FILE")
+    GENERAL_MOVIE_NAME=$(mediainfo "--Inform=General;%Movie%" "$FILE")
+    GENERAL_TVSHOW_NAME=$(mediainfo "--Inform=General;%Collection%" "$FILE")
 
-    VIDEO_RESOLUTION_INFO=$(mediainfo --Inform="Video;%Width%,%Height%" "$FILE")
+    VIDEO_RESOLUTION_INFO=$(mediainfo "--Inform=Video;%Width%,%Height%" "$FILE")
     IFS=',' read -r width height <<< "$VIDEO_RESOLUTION_INFO"
     VIDEO_RESOLUTION=""
     if ((width >= 7680)); then
@@ -87,7 +87,7 @@ fi | while IFS= read -r -d '' FILE; do
 
     if [ -n "$GENERAL_MOVIE_NAME" ]
     then
-        GENERAL_RECORDED_YEAR=$(gdate -d "$(mediainfo --Inform="General;%Recorded_Date%" "$FILE" | awk '{print $(NF-1)}')" +"%Y")
+        GENERAL_RECORDED_YEAR=$(mediainfo "--Inform=General;%Recorded_Date%" "$FILE" | awk -F- '{print $1}')
 
         if [ -n "$GENERAL_RECORDED_YEAR" ]
         then
@@ -97,9 +97,9 @@ fi | while IFS= read -r -d '' FILE; do
         fi
     elif [ -n "$GENERAL_TVSHOW_NAME" ]
     then
-        GENERAL_SEASON_NUMBER=$(printf "%02d\n" "$(mediainfo --Inform="General;%Season%" "$FILE")")
-        GENERAL_EPISODE_NUMBER=$(printf "%02d\n" "$(mediainfo --Inform="General;%Track/Position%" "$FILE")")
-        GENERAL_EPISODE_NAME=$(mediainfo --Inform="General;%Track%" "$FILE")
+        GENERAL_SEASON_NUMBER=$(printf "%02d\n" "$(mediainfo "--Inform=General;%Season%" "$FILE")")
+        GENERAL_EPISODE_NUMBER=$(printf "%02d\n" "$(mediainfo "--Inform=General;%Track/Position%" "$FILE")")
+        GENERAL_EPISODE_NAME=$(mediainfo "--Inform=General;%Track%" "$FILE")
 
         if [ -n "$GENERAL_SEASON_NUMBER" ] && [ -n "$GENERAL_EPISODE_NUMBER" ] && [ -n "$GENERAL_EPISODE_NAME" ]
         then

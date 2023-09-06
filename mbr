@@ -9,9 +9,10 @@ fi
 output_directory="./"
 verbose=0
 recursive=0
+no_folders=0
 
 usage() {
-  echo "Usage: mbr [-v|--verbose] [-r|--recursive] [-o|--output] [-h|--help]"
+  echo "Usage: mbr [-v|--verbose] [-r|--recursive] [-o|--output] [-n|--no-folders] [-h|--help]"
   exit 0
 }
 
@@ -32,6 +33,10 @@ while [[ $# -gt 0 ]]; do
       else
         shift
       fi
+      ;;
+    -n|--no-folders)
+      no_folders=1
+      shift
       ;;
     -h|--help)
       usage
@@ -92,7 +97,11 @@ fi | while IFS= read -r -d '' FILE; do
         if [ -n "$GENERAL_RECORDED_YEAR" ]
         then
             FILENAME=$(parse_filename "$GENERAL_MOVIE_NAME ($GENERAL_RECORDED_YEAR)")
-            DIRECTORY="$(realpath "$output_directory")/$FILENAME"
+            if [ "$no_folders" -eq 1 ]; then
+                DIRECTORY="$(realpath "$output_directory")"
+            else
+                DIRECTORY="$(realpath "$output_directory")/$FILENAME"
+            fi
             FILENAME=$(echo "$FILENAME ($VIDEO_RESOLUTION).$FILE_EXTENSION")
         fi
     elif [ -n "$GENERAL_TVSHOW_NAME" ]
@@ -103,7 +112,11 @@ fi | while IFS= read -r -d '' FILE; do
 
         if [ -n "$GENERAL_SEASON_NUMBER" ] && [ -n "$GENERAL_EPISODE_NUMBER" ] && [ -n "$GENERAL_EPISODE_NAME" ]
         then
-            DIRECTORY="$(realpath "$output_directory")/$GENERAL_TVSHOW_NAME/Season $GENERAL_SEASON_NUMBER"
+            if [ "$no_folders" -eq 1 ]; then
+                DIRECTORY="$(realpath "$output_directory")"
+            else
+                DIRECTORY="$(realpath "$output_directory")/$GENERAL_TVSHOW_NAME/Season $GENERAL_SEASON_NUMBER"
+            fi
             FILENAME=$(parse_filename "$GENERAL_TVSHOW_NAME - S$GENERAL_SEASON_NUMBER"E$GENERAL_EPISODE_NUMBER" - $GENERAL_EPISODE_NAME ($VIDEO_RESOLUTION).$FILE_EXTENSION")
         fi
     fi

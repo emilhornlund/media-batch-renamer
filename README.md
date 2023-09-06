@@ -23,7 +23,7 @@ Media Batch Renamer (mbr) is a command-line script written in Bash that allows y
 3. Run the script with the desired options:
 
 ```bash
-./mbr [-v|--verbose] [-r|--recursive] [-o|--output] [-h|--help]
+./mbr [-v|--verbose] [-r|--recursive] [-o|--output] [-n|--no-folders] [-h|--help]
 ```
 
 Options:
@@ -31,6 +31,7 @@ Options:
 - `-v` or `--verbose`: Enable verbose mode for detailed output during processing.
 - `-r` or `--recursive`: Perform a recursive search for media files within subdirectories.
 - `-o` or `--output`: Specify the output directory for the organized files. By default, it uses the current directory.
+- `-n` or `--no-folders`: Prevent creating separate directories for Movies and TV shows, and save files directly to the specified output directory.
 - `-h` or `--help`: Display the help message with usage instructions.
 
 Sit back and let Media Batch Renamer organize and rename your media files!
@@ -43,10 +44,10 @@ Organize files in the current directory non-recursively:
 ./mbr
 ```
 
-Organize files in a specific directory recursively, using a custom output directory and enabling verbose mode:
+Organize files in a specific directory recursively, using a custom output directory, enabling verbose mode, and without creating separate directories:
 
 ```bash
-./mbr -r -v -o /path/to/output_directory
+./mbr -r -v -o /path/to/output_directory -n
 ```
 
 ## Contributing
